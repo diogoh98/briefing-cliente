@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Briefing do Site — Preencha suas informações</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0E0E0E;
+    --surface: #161616;
+    --surface2: #1E1E1E;
+    --border: rgba(255,255,255,0.07);
+    --border-active: rgba(201,169,110,0.5);
+    --gold: #C9A96E;
+    --gold-light: rgba(201,169,110,0.12);
+    --white: #F5F3EF;
+    --muted: rgba(245,243,239,0.45);
+    --faint: rgba(245,243,239,0.15);
+    --success: #6DBF8A;
+    --radius: 12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--gold);
+    width: 0%;
+    transition: width 0.3s ease;
+    z-index: 1000;
+  }
+
+  /* Header */
+  header {
+    padding: 60px 40px 0;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .header-label {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+  .header-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .header-title em {
+    font-style: italic;
+    color: var(--gold);
+  }
+  .header-sub {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 520px;
+    margin-bottom: 48px;
+  }
+  .header-divider {
+    height: 0.5px;
+    background: linear-gradient(to right, var(--gold), transparent);
+    margin-bottom: 60px;
+    opacity: 0.4;
+  }
+
+  /* Step indicator */
+  .steps-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+  }
+  .step-dot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 0.5px solid var(--border);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--faint);
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .step-dot.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--gold-light);
+  }
+  .step-dot.done {
+    border-color: rgba(109,191,138,0.3);
+    color: #6DBF8A;
+    background: rgba(109,191,138,0.06);
+  }
+  .step-num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 0.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+  }
+
+  /* Main form container */
+  .form-container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 40px 120px;
+  }
+
+  /* Step sections */
+  .step-section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .step-section.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+  .section-badge::before {
+    content: '';
+    width: 20px; height: 0.5px;
+    background: var(--gold);
+    opacity: 0.5;
+  }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 40px;
+  }
+
+  /* Form groups */
+  .form-group {
+    margin-bottom: 28px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .form-group label span.req {
+    color: var(--gold);
+    margin-left: 2px;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--white);
+    outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease;
+    -webkit-appearance: none;
+  }
+  input::placeholder, textarea::placeholder { color: var(--faint); }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-active);
+    background: var(--surface2);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23C9A96E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+  select option { background: #1E1E1E; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Hint text */
+  .field-hint {
+    font-size: 11px;
+    color: var(--faint);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* Card selectors (design styles) */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .style-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+  .style-card input[type="checkbox"],
+  .style-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .style-card:hover { border-color: rgba(201,169,110,0.3); }
+  .style-card.selected {
+    border-color: var(--gold);
+    background: var(--gold-light);
+  }
+  .style-card.selected .card-check { opacity: 1; }
+  .style-preview {
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-check {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-size: 11px;
+  }
+  .card-body {
+    padding: 12px 14px;
+    border-top: 0.5px solid var(--border);
+  }
+  .card-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+  .card-desc {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* Design style previews */
+  .preview-clean { background: #FAFAFA; color: #1A1A1A; }
+  .preview-clean::after {
+    content: 'Clean';
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    font-weight: 400;
+    color: #777;
+  }
+
+  .preview-luxo { background: #0D0D0D; color: #C9A96E; }
+  .preview-luxo::after { content: 'Luxo'; color: #C9A96E; }
+
+  .preview-moderno { background: #0F1729; color: #4A9EFF; }
+  .preview-moderno::after { content: 'Tech'; color: #4A9EFF; font-family: 'DM Sans'; font-size: 13px; }
+
+  .preview-natural { background: #EEE8DF; color: #5A6B47; }
+  .preview-natural::after { content: 'Natural'; color: #5A6B47; }
+
+  .preview-ousado { background: #FF2D55; color: #fff; }
+  .preview-ousado::after { content: 'Bold'; font-family: 'DM Sans'; font-weight: 700; font-size: 18px; }
+
+  .preview-corporativo { background: #F0F4F8; color: #1E3A5F; }
+  .preview-corporativo::after { content: 'Corp'; font-family: 'DM Sans'; font-weight: 600; font-size: 13px; color: #1E3A5F; }
+
+  /* Color swatches */
+  .color-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .color-swatch {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .color-swatch:hover { transform: scale(1.1); }
+  .color-swatch.selected {
+    border-color: var(--white);
+    box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px currentColor;
+  }
+  .color-swatch.selected::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    color: white;
+  }
+
+  /* Upload area */
+  .upload-area {
+    border: 0.5px dashed rgba(201,169,110,0.3);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--surface);
+    position: relative;
+  }
+  .upload-area:hover {
+    border-color: var(--gold);
+    background: var(--gold-light);
+  }
+  .upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .upload-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.5; }
+  .upload-label { font-size: 13px; color: var(--muted); }
+  .upload-label strong { color: var(--gold); font-weight: 400; }
+  .upload-hint { font-size: 11px; color: var(--faint); margin-top: 6px; }
+  .file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .file-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .file-item span { color: var(--success); font-size: 14px; }
+
+  /* Checkbox / radio pills */
+  .pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pill-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 99px;
+    border: 0.5px solid var(--border);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted);
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .pill-option input { display: none; }
+  .pill-option:hover { border-color: rgba(201,169,110,0.3); color: var(--white); }
+  .pill-option.checked {
+    border-color: var(--gold);
+    background: var(--gold-light);
+    color: var(--gold);
+  }
+
+  /* Navigation buttons */
+  .form-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 0.5px solid var(--border);
+  }
+  .btn-prev {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: 99px;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.05em;
+  }
+  .btn-prev:hover { border-color: var(--border-active); color: var(--white); }
+  .btn-next {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #0E0E0E;
+    background: var(--gold);
+    border: none;
+    border-radius: 99px;
+    padding: 12px 32px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.05em;
+  }
+  .btn-next:hover { background: #B8884A; transform: translateX(2px); }
+  .btn-submit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0E0E0E;
+    background: var(--gold);
+    border: none;
+    border-radius: 99px;
+    padding: 14px 40px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.05em;
+  }
+  .btn-submit:hover { background: #B8884A; }
+
+  .step-counter {
+    font-size: 11px;
+    color: var(--faint);
+    letter-spacing: 0.1em;
+  }
+
+  /* Divider between form sections */
+  .form-divider {
+    height: 0.5px;
+    background: var(--border);
+    margin: 36px 0;
+  }
+
+  /* Success screen */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 80px 40px;
+    max-width: 600px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease;
+  }
+  .success-screen.visible { display: block; }
+  .success-icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(109,191,138,0.12);
+    border: 0.5px solid rgba(109,191,138,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 32px;
+  }
+  .success-title {
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    color: var(--white);
+  }
+  .success-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .success-note {
+    margin-top: 40px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    header, .form-container { padding-left: 20px; padding-right: 20px; }
+    .form-row { grid-template-columns: 1fr; }
+    .card-grid { grid-template-columns: repeat(2, 1fr); }
+    .steps-nav { gap: 4px; }
+    .step-dot { font-size: 10px; padding: 5px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<header>
+  <p class="header-label">Briefing do Projeto</p>
+  <h1 class="header-title">Vamos construir<br>o seu <em>site ideal.</em></h1>
+  <p class="header-sub">Preencha as informações abaixo para que possamos criar uma página personalizada e alinhada com a sua marca. Leva cerca de 8 minutos.</p>
+  <div class="header-divider"></div>
+  <div class="steps-nav" id="stepsNav">
+    <div class="step-dot active" onclick="goToStep(0)">
+      <div class="step-num">1</div> Identidade
+    </div>
+    <div class="step-dot" onclick="goToStep(1)">
+      <div class="step-num">2</div> Contato
+    </div>
+    <div class="step-dot" onclick="goToStep(2)">
+      <div class="step-num">3</div> Visual
+    </div>
+    <div class="step-dot" onclick="goToStep(3)">
+      <div class="step-num">4</div> Conteúdo
+    </div>
+    <div class="step-dot" onclick="goToStep(4)">
+      <div class="step-num">5</div> Público
+    </div>
+    <div class="step-dot" onclick="goToStep(5)">
+      <div class="step-num">6</div> Arquivos
+    </div>
+  </div>
+</header>
+
+<div class="form-container">
+
+  <!-- STEP 1: IDENTIDADE -->
+  <div class="step-section active" id="step-0">
+    <p class="section-badge">Etapa 1 de 6</p>
+    <h2 class="section-title">Identidade da Marca</h2>
+    <p class="section-desc">Informações básicas sobre o seu negócio — o alicerce de tudo.</p>
+
+    <div class="form-group">
+      <label>Nome completo da empresa ou profissional <span class="req">*</span></label>
+      <input type="text" id="nomeEmpresa" placeholder="Ex: Clínica Bella Vita Estética" required>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome fantasia (como aparece na fachada)</label>
+        <input type="text" id="nomeFantasia" placeholder="Ex: Bella Vita">
+      </div>
+      <div class="form-group">
+        <label>Segmento de atuação <span class="req">*</span></label>
+        <select id="segmento" required>
+          <option value="" disabled selected>Selecione...</option>
+          <optgroup label="Saúde & Bem-estar">
+            <option>Clínica Estética</option>
+            <option>Odontologia</option>
+            <option>Medicina / Consultório</option>
+            <option>Psicologia</option>
+            <option>Fisioterapia</option>
+            <option>Nutrição</option>
+          </optgroup>
+          <optgroup label="Comércio & Serviços">
+            <option>Restaurante / Café</option>
+            <option>Moda / Boutique</option>
+            <option>Pet Shop</option>
+            <option>Salão de Beleza / Barbearia</option>
+            <option>Academia / Personal Trainer</option>
+          </optgroup>
+          <optgroup label="Negócios & Profissional">
+            <option>Advocacia / Contabilidade</option>
+            <option>Imobiliária / Construção</option>
+            <option>Consultoria / Coaching</option>
+            <option>Tecnologia / Software</option>
+            <option>Fotografia / Design</option>
+          </optgroup>
+          <option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cidade e Estado <span class="req">*</span></label>
+        <input type="text" id="cidade" placeholder="Ex: Maringá, PR" required>
+      </div>
+      <div class="form-group">
+        <label>CNPJ ou CPF (para rodapé legal)</label>
+        <input type="text" id="cnpj" placeholder="Ex: 00.000.000/0001-00">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Registro profissional (CRM, CRO, CRP, etc.)</label>
+      <input type="text" id="registro" placeholder="Ex: CRO-PR 12345">
+      <p class="field-hint">Obrigatório para profissionais de saúde — aparece no rodapé do site.</p>
+    </div>
+    <div class="form-group">
+      <label>Slogan ou frase principal da marca</label>
+      <input type="text" id="slogan" placeholder="Ex: Revelando a sua melhor versão.">
+      <p class="field-hint">Se não tiver, deixe em branco — vamos criar juntos.</p>
+    </div>
+
+    <div class="form-nav">
+      <span class="step-counter">Etapa 1 de 6</span>
+      <button class="btn-next" onclick="nextStep()">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: CONTATO -->
+  <div class="step-section" id="step-1">
+    <p class="section-badge">Etapa 2 de 6</p>
+    <h2 class="section-title">Contato & Canais</h2>
+    <p class="section-desc">Como os seus clientes vão te encontrar e entrar em contato.</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>WhatsApp (com DDD) <span class="req">*</span></label>
+        <input type="tel" id="whatsapp" placeholder="(44) 99999-0000" required>
+      </div>
+      <div class="form-group">
+        <label>Telefone fixo</label>
+        <input type="tel" id="telefone" placeholder="(44) 3333-0000">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>E-mail de contato <span class="req">*</span></label>
+      <input type="email" id="email" placeholder="contato@suaempresa.com.br" required>
+    </div>
+    <div class="form-group">
+      <label>Endereço completo</label>
+      <input type="text" id="endereco" placeholder="Rua, número, bairro, cidade, estado, CEP">
+    </div>
+
+    <div class="form-divider"></div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Instagram</label>
+        <input type="text" id="instagram" placeholder="@suaempresa">
+      </div>
+      <div class="form-group">
+        <label>Facebook</label>
+        <input type="text" id="facebook" placeholder="/suaempresa">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>TikTok</label>
+        <input type="text" id="tiktok" placeholder="@suaempresa">
+      </div>
+      <div class="form-group">
+        <label>LinkedIn</label>
+        <input type="text" id="linkedin" placeholder="linkedin.com/in/suaempresa">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Sistema de agendamento online (se usar)</label>
+      <input type="url" id="agendamento" placeholder="Ex: https://calendly.com/suaempresa">
+      <p class="field-hint">Doctoralia, Calendly, SimplyBook ou qualquer outro.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Horário de funcionamento <span class="req">*</span></label>
+      <input type="text" id="horario" placeholder="Ex: Seg–Sex 8h–18h | Sáb 8h–12h" required>
+    </div>
+
+    <div class="form-group">
+      <label>Qual é a ação principal que o visitante deve tomar no site?</label>
+      <select id="cta">
+        <option value="" disabled selected>Selecione o CTA principal...</option>
+        <option>Agendar uma consulta / sessão</option>
+        <option>Falar no WhatsApp</option>
+        <option>Solicitar orçamento</option>
+        <option>Comprar produto</option>
+        <option>Ligar agora</option>
+        <option>Preencher formulário de contato</option>
+      </select>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn-prev" onclick="prevStep()">← Voltar</button>
+      <span class="step-counter">Etapa 2 de 6</span>
+      <button class="btn-next" onclick="nextStep()">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: VISUAL -->
+  <div class="step-section" id="step-2">
+    <p class="section-badge">Etapa 3 de 6</p>
+    <h2 class="section-title">Estilo Visual</h2>
+    <p class="section-desc">Como você quer que o seu site pareça e se sinta. Selecione tudo que te representar.</p>
+
+    <!-- Design styles -->
+    <div class="form-group">
+      <label>Escolha o estilo que mais combina com você <span class="req">*</span></label>
+      <div class="card-grid" id="styleGrid">
+
+        <label class="style-card" onclick="toggleCard(this)">
+          <input type="radio" name="estilo" value="clean">
+          <div class="style-preview preview-clean"><div class="card-check">✓</div></div>
+          <div class="card-body">
+            <div class="card-name">Clean & Minimalista</div>
+            <div class="card-desc">Muito espaço em branco, tipografia leve, tons neutros</div>
+          </div>
+        </label>
+
+        <label class="style-card" onclick="toggleCard(this)">
+          <input type="radio" name="estilo" value="luxo">
+          <div class="style-preview preview-luxo"><div class="card-check">✓</div></div>
+          <div class="card-body">
+            <div class="card-name">Luxo & Sofisticado</div>
+            <div class="card-desc">Fundo escuro, dourado, premium e exclusivo</div>
+          </div>
+        </label>
+
+        <label class="style-card" onclick="toggleCard(this)">
+          <input type="radio" name="estilo" value="moderno">
+          <div class="style-preview preview-moderno"><div class="card-check">✓</div></div>
+          <div class="card-body">
+            <div class="card-name">Tech & Moderno</div>
+            <div class="card-desc">Azul, gradiente, tecnológico e inovador</div>
+          </div>
+        </label>
+
+        <label class="style-card" onclick="toggleCard(this)">
+          <input type="radio" name="estilo" value="natural">
+          <div class="style-preview preview-natural"><div class="card-check">✓</div></div>
+          <div class="card-body">
+            <div class="card-name">Natural & Acolhedor</div>
+            <div class="card-desc">Tons terrosos, verde sálvia, orgânico e humano</div>
+          </div>
+        </label>
+
+        <label class="style-card" onclick="toggleCard(this)">
+          <input type="radio" name="estilo" value="ousado">
+          <div class="style-preview preview-ousado"><div class="card-check">✓</div></div>
+          <div class="card-body">
+            <div class="card-name">Bold & Impactante</div>
+            <div class="card-desc">Cores vibrantes, tipografia forte, energia alta</div>
+          </div>
+        </label>
+
+        <label class="style-card" onclick="toggleCard(this)">
+          <input type="radio" name="estilo" value="corporativo">
+          <div class="style-preview preview-corporativo"><div class="card-check">✓</div></div>
+          <div class="card-body">
+            <div class="card-name">Corporativo Premium</div>
+            <div class="card-desc">Azul navy, grid preciso, confiança e credibilidade</div>
+          </div>
+        </label>
+
+      </div>
+    </div>
+
+    <!-- Color preference -->
+    <div class="form-group">
+      <label>Paleta de cores preferida (escolha até 3)</label>
+      <div class="color-grid" id="colorGrid">
+        <div class="color-swatch" style="background:#1E3A5F;" data-color="Azul Navy" onclick="toggleColor(this)" title="Azul Navy"></div>
+        <div class="color-swatch" style="background:#0D7377;" data-color="Teal" onclick="toggleColor(this)" title="Teal"></div>
+        <div class="color-swatch" style="background:#C9A96E;" data-color="Dourado" onclick="toggleColor(this)" title="Dourado"></div>
+        <div class="color-swatch" style="background:#D4A898;" data-color="Rose Gold" onclick="toggleColor(this)" title="Rose Gold"></div>
+        <div class="color-swatch" style="background:#A8B89A;" data-color="Verde Sálvia" onclick="toggleColor(this)" title="Verde Sálvia"></div>
+        <div class="color-swatch" style="background:#E8861A;" data-color="Âmbar" onclick="toggleColor(this)" title="Âmbar"></div>
+        <div class="color-swatch" style="background:#E63946;" data-color="Vermelho" onclick="toggleColor(this)" title="Vermelho"></div>
+        <div class="color-swatch" style="background:#7B61FF;" data-color="Roxo" onclick="toggleColor(this)" title="Roxo"></div>
+        <div class="color-swatch" style="background:#111111;" data-color="Preto" onclick="toggleColor(this)" title="Preto"></div>
+        <div class="color-swatch" style="background:#F5F5F0;" data-color="Off-white" onclick="toggleColor(this)" title="Off-white" style="border: 0.5px solid rgba(255,255,255,0.2)"></div>
+      </div>
+      <p class="field-hint">Se a empresa já tem cores definidas, informe os códigos hex abaixo.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Códigos de cor da marca (hex)</label>
+      <input type="text" id="coresHex" placeholder="Ex: #0B1F3A e #C9A96E — ou deixe em branco">
+    </div>
+
+    <div class="form-group">
+      <label>Sites que você gosta (pode ser de qualquer segmento)</label>
+      <textarea id="sitesGosta" placeholder="Cole links ou descreva o visual que te agrada&#10;Ex: apple.com — minimalista e clean&#10;Ex: gosto de algo escuro e sofisticado como marcas de luxo"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Sites ou estilos que você NÃO quer de jeito nenhum</label>
+      <textarea id="sitesNaoGosta" placeholder="Ex: não quero nada muito colorido ou infantil&#10;Ex: evitar fundos escuros, prefiro algo claro"></textarea>
+      <p class="field-hint">Isso é tão importante quanto o que você gosta.</p>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn-prev" onclick="prevStep()">← Voltar</button>
+      <span class="step-counter">Etapa 3 de 6</span>
+      <button class="btn-next" onclick="nextStep()">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: CONTEÚDO -->
+  <div class="step-section" id="step-3">
+    <p class="section-badge">Etapa 4 de 6</p>
+    <h2 class="section-title">Conteúdo do Site</h2>
+    <p class="section-desc">O que vai aparecer na página — serviços, textos e informações.</p>
+
+    <div class="form-group">
+      <label>Serviços ou produtos principais <span class="req">*</span></label>
+      <textarea id="servicos" rows="5" placeholder="Liste os serviços ou produtos que devem aparecer no site.&#10;&#10;Ex:&#10;1. Harmonização Facial — tratamento que suaviza linhas de expressão&#10;2. Limpeza de Pele — protocolo com nanotecnologia&#10;3. Microagulhamento — estimula colágeno" required></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Texto "Sobre a empresa ou profissional"</label>
+      <textarea id="sobre" rows="5" placeholder="Escreva em suas próprias palavras a história, missão ou diferencial da empresa.&#10;&#10;Dica: Escreva como se estivesse se apresentando a um cliente novo — pode ser informal."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Depoimentos de clientes reais</label>
+      <textarea id="depoimentos" rows="5" placeholder="Cole até 3 depoimentos no formato:&#10;&#10;'Nome do cliente — Depoimento'&#10;Ex: Maria S. — 'Atendimento incrível, resultado superou minhas expectativas!'"></textarea>
+      <p class="field-hint">Se não tiver, podemos criar depoimentos fictícios plausíveis para o demo.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Perguntas frequentes dos clientes (FAQ)</label>
+      <textarea id="faq" rows="5" placeholder="Liste perguntas que os clientes sempre fazem no WhatsApp ou na consulta.&#10;&#10;Ex:&#10;P: Quanto tempo dura o procedimento?&#10;R: Entre 30 e 60 minutos dependendo da área."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Avaliação no Google</label>
+      <div class="form-row">
+        <div>
+          <input type="text" id="notaGoogle" placeholder="Ex: 4.9 estrelas">
+        </div>
+        <div>
+          <input type="text" id="numAvaliacoes" placeholder="Ex: 240 avaliações">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Quais seções você quer no site? <span class="req">*</span></label>
+      <div class="pill-group" id="secoesPills">
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="hero">Hero / Banner principal</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="sobre">Sobre a empresa</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="servicos">Serviços / Tratamentos</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="galeria">Galeria de fotos</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="depoimentos">Depoimentos</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="precos">Tabela de preços</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="faq">Perguntas frequentes</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="contato">Formulário de contato</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="mapa">Mapa / localização</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="blog">Blog / artigos</label>
+      </div>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn-prev" onclick="prevStep()">← Voltar</button>
+      <span class="step-counter">Etapa 4 de 6</span>
+      <button class="btn-next" onclick="nextStep()">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: PÚBLICO E MERCADO -->
+  <div class="step-section" id="step-4">
+    <p class="section-badge">Etapa 5 de 6</p>
+    <h2 class="section-title">Público & Mercado</h2>
+    <p class="section-desc">Quanto melhor entendermos o seu cliente ideal, mais certeiro fica o site.</p>
+
+    <div class="form-group">
+      <label>Quem é o seu cliente ideal? <span class="req">*</span></label>
+      <textarea id="publicoAlvo" rows="4" placeholder="Descreva o perfil: idade, gênero, renda, hábitos, o que ele busca.&#10;&#10;Ex: Mulheres entre 30 e 50 anos, classe média-alta, que buscam estética facial com resultado natural e têm medo de parecer 'exageradas'." required></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Qual é o maior problema ou dor do seu cliente que você resolve?</label>
+      <textarea id="dorCliente" rows="3" placeholder="Ex: O cliente tem medo de dentista e evita tratamentos por ansiedade — oferecemos sedação consciente e ambiente acolhedor."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Quais são os seus 3 maiores diferenciais frente à concorrência?</label>
+      <textarea id="diferenciais" rows="4" placeholder="Ex:&#10;1. Único consultório na região com scanner intraoral 3D&#10;2. Atendimento emergencial no mesmo dia&#10;3. Parcelamento em até 18x sem juros"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Cite 2 ou 3 concorrentes diretos (nome ou site)</label>
+      <input type="text" id="concorrentes" placeholder="Ex: Clínica X, Dr. Y, site.com.br — para entender o mercado ao redor">
+      <p class="field-hint">Não para copiar — para garantir que seu site se destaque visualmente.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Tom de comunicação desejado</label>
+      <div class="pill-group" id="tomPills">
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="formal">Formal e técnico</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="acolhedor">Acolhedor e humano</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="sofisticado">Sofisticado e premium</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="descontraido">Moderno e descontraído</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="cientifico">Científico e preciso</label>
+        <label class="pill-option" onclick="togglePill(this)"><input type="checkbox" value="inspirador">Inspirador e motivacional</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Prazo desejado para entrega do site</label>
+      <select id="prazo">
+        <option value="" disabled selected>Selecione...</option>
+        <option>O mais rápido possível</option>
+        <option>Até 1 semana</option>
+        <option>2 a 3 semanas</option>
+        <option>Sem urgência — faça com calma</option>
+        <option>Tenho uma data específica (informar no campo abaixo)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Observações adicionais</label>
+      <textarea id="observacoes" rows="3" placeholder="Algo importante que não foi coberto acima? Alguma restrição, pedido especial ou contexto relevante?"></textarea>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn-prev" onclick="prevStep()">← Voltar</button>
+      <span class="step-counter">Etapa 5 de 6</span>
+      <button class="btn-next" onclick="nextStep()">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: ARQUIVOS -->
+  <div class="step-section" id="step-5">
+    <p class="section-badge">Etapa 6 de 6</p>
+    <h2 class="section-title">Arquivos & Logo</h2>
+    <p class="section-desc">Envie os materiais visuais que temos disponíveis. Qualidade faz diferença no resultado final.</p>
+
+    <div class="form-group">
+      <label>Logo da empresa</label>
+      <div class="upload-area" id="uploadLogo">
+        <input type="file" accept=".svg,.png,.pdf,.ai,.eps" onchange="handleFiles(this, 'logoList')">
+        <div class="upload-icon">⬆</div>
+        <p class="upload-label"><strong>Clique para enviar</strong> ou arraste o arquivo</p>
+        <p class="upload-hint">Formatos aceitos: SVG, PNG (fundo transparente), PDF, AI — Alta resolução</p>
+        <div class="file-list" id="logoList"></div>
+      </div>
+      <p class="field-hint">Não tem logo? Deixe em branco — usaremos texto estilizado ou criaremos um SVG simples.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Fotos do ambiente, equipe ou produtos</label>
+      <div class="upload-area" id="uploadFotos">
+        <input type="file" accept="image/*" multiple onchange="handleFiles(this, 'fotosList')">
+        <div class="upload-icon">🖼</div>
+        <p class="upload-label"><strong>Clique para enviar</strong> ou arraste as fotos</p>
+        <p class="upload-hint">JPG ou PNG, mínimo 1200px de largura — pode enviar várias de uma vez</p>
+        <div class="file-list" id="fotosList"></div>
+      </div>
+      <p class="field-hint">Sem fotos? Usaremos imagens do Unsplash como placeholder — substituir por fotos reais melhora muito o resultado.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Manual de marca ou guia de identidade visual</label>
+      <div class="upload-area">
+        <input type="file" accept=".pdf,.ai,.sketch,.fig" onchange="handleFiles(this, 'manualList')">
+        <div class="upload-icon">📋</div>
+        <p class="upload-label"><strong>Clique para enviar</strong> (opcional)</p>
+        <p class="upload-hint">PDF, AI, Sketch ou Figma — se existir</p>
+        <div class="file-list" id="manualList"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Site atual (se existir)</label>
+      <input type="url" id="siteAtual" placeholder="https://seusite.com.br">
+      <p class="field-hint">Vamos analisar para garantir que o novo site seja melhor em todos os aspectos.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Tem domínio registrado?</label>
+      <select id="dominio">
+        <option value="" disabled selected>Selecione...</option>
+        <option>Sim — informar o domínio abaixo</option>
+        <option>Não — preciso registrar um novo</option>
+        <option>Não sei / preciso de ajuda</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Domínio desejado ou atual</label>
+      <input type="text" id="dominioNome" placeholder="Ex: www.minhaempresa.com.br">
+    </div>
+
+    <div class="form-nav">
+      <button class="btn-prev" onclick="prevStep()">← Voltar</button>
+      <span class="step-counter">Etapa 6 de 6</span>
+      <button class="btn-submit" onclick="submitForm()">Enviar Briefing ✓</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Success screen -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✓</div>
+  <h2 class="success-title">Briefing recebido!</h2>
+  <p class="success-sub">Obrigado por preencher todas as informações.<br>Vamos analisar tudo com cuidado e entraremos em contato em breve para dar início ao projeto.</p>
+  <div class="success-note">
+    📋 <strong>Próximos passos:</strong><br><br>
+    Vamos revisar o seu briefing e entrar em contato em até 24h com uma proposta e cronograma para o desenvolvimento do seu site.
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  // CONFIGURAÇÃO DO SUPABASE
+  // Substitua os valores abaixo pelas suas chaves
+  // ─────────────────────────────────────────────
+  const SUPABASE_URL  = 'https://coatfgcjvfpfpbkofqfv.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvYXRmZ2NqdmZwZnBia29mcWZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTYwNDQsImV4cCI6MjA5MDEzMjA0NH0.jvOMrDKnCMM0_ouI_j4laWAPmBBLkrC5yxjXRSNIfRA';
+
+  const { createClient } = supabase;
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ─────────────────────────────────────────────
+  // CONTROLE DE ETAPAS
+  // ─────────────────────────────────────────────
+  let currentStep = 0;
+  const totalSteps = 6;
+
+  function updateProgress() {
+    const pct = ((currentStep + 1) / totalSteps) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    const dots = document.querySelectorAll('.step-dot');
+    dots.forEach((dot, i) => {
+      dot.classList.remove('active', 'done');
+      if (i === currentStep) dot.classList.add('active');
+      else if (i < currentStep) dot.classList.add('done');
+    });
+  }
+
+  function showStep(n) {
+    document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateProgress();
+  }
+
+  function nextStep() {
+    if (currentStep < totalSteps - 1) {
+      currentStep++;
+      showStep(currentStep);
+    }
+  }
+
+  function prevStep() {
+    if (currentStep > 0) {
+      currentStep--;
+      showStep(currentStep);
+    }
+  }
+
+  function goToStep(n) {
+    if (n <= currentStep) {
+      currentStep = n;
+      showStep(currentStep);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // HELPERS DE UI
+  // ─────────────────────────────────────────────
+  function toggleCard(el) {
+    document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function toggleColor(el) {
+    if (el.classList.contains('selected')) {
+      el.classList.remove('selected');
+    } else {
+      const selected = document.querySelectorAll('.color-swatch.selected');
+      if (selected.length >= 3) return;
+      el.classList.add('selected');
+    }
+  }
+
+  function togglePill(el) {
+    el.classList.toggle('checked');
+  }
+
+  function handleFiles(input, listId) {
+    const list = document.getElementById(listId);
+    list.innerHTML = '';
+    Array.from(input.files).forEach(file => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `<span>✓</span> ${file.name} <small style="margin-left:auto;opacity:0.5">${(file.size / 1024).toFixed(0)}KB</small>`;
+      list.appendChild(item);
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // FASE 1: UPLOAD DE ARQUIVOS PARA O STORAGE
+  // ─────────────────────────────────────────────
+
+  /**
+   * Faz upload de todos os arquivos de um <input type="file"> para o bucket
+   * "briefing_arquivos" e retorna um array de URLs públicas.
+   *
+   * @param {HTMLInputElement} inputEl  - O elemento <input type="file">
+   * @param {string}           prefix   - Prefixo/pasta dentro do bucket (ex: "logos", "fotos")
+   * @returns {Promise<string[]>}       - Array de URLs públicas dos arquivos enviados
+   */
+  async function uploadFiles(inputEl, prefix) {
+    const urls = [];
+    if (!inputEl || !inputEl.files || inputEl.files.length === 0) return urls;
+
+    const timestamp = Date.now();
+
+    for (const file of Array.from(inputEl.files)) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${prefix}/${timestamp}_${safeName}`;
+
+      const { error } = await supabaseClient.storage
+        .from('briefing_arquivos')
+        .upload(path, file, { upsert: true });
+
+      if (error) {
+        console.error(`Erro ao enviar "${file.name}":`, error.message);
+        continue; // pula o arquivo com erro mas não interrompe o envio
+      }
+
+      const { data: publicData } = supabaseClient.storage
+        .from('briefing_arquivos')
+        .getPublicUrl(path);
+
+      if (publicData?.publicUrl) {
+        urls.push(publicData.publicUrl);
+      }
+    }
+
+    return urls;
+  }
+
+  // ─────────────────────────────────────────────
+  // COLETA DE DADOS DO FORMULÁRIO
+  // ─────────────────────────────────────────────
+  function collectFormData() {
+    const val = id => (document.getElementById(id)?.value?.trim() ?? '');
+
+    // Estilo visual selecionado (radio)
+    const estiloEl = document.querySelector('input[name="estilo"]:checked');
+    const estiloVisual = estiloEl ? estiloEl.value : '';
+
+    // Cores selecionadas (swatches)
+    const coresSelecionadas = Array.from(
+      document.querySelectorAll('.color-swatch.selected')
+    ).map(el => el.dataset.color);
+
+    // Seções do site (pills — step 4)
+    const secoesSelecionadas = Array.from(
+      document.querySelectorAll('#secoesPills .pill-option.checked input')
+    ).map(el => el.value);
+
+    // Tom de comunicação (pills — step 5)
+    const tomSelecionado = Array.from(
+      document.querySelectorAll('#tomPills .pill-option.checked input')
+    ).map(el => el.value);
+
+    return {
+      // Etapa 1 — Identidade
+      nome_empresa:   val('nomeEmpresa'),
+      nome_fantasia:  val('nomeFantasia'),
+      segmento:       val('segmento'),
+      cidade:         val('cidade'),
+      cnpj:           val('cnpj'),
+      registro:       val('registro'),
+      slogan:         val('slogan'),
+
+      // Etapa 2 — Contato
+      whatsapp:       val('whatsapp'),
+      telefone:       val('telefone'),
+      email:          val('email'),
+      endereco:       val('endereco'),
+      instagram:      val('instagram'),
+      facebook:       val('facebook'),
+      tiktok:         val('tiktok'),
+      linkedin:       val('linkedin'),
+      agendamento:    val('agendamento'),
+      horario:        val('horario'),
+      cta_principal:  val('cta'),
+
+      // Etapa 3 — Visual
+      estilo_visual:      estiloVisual,
+      cores_selecionadas: coresSelecionadas,
+      cores_hex:          val('coresHex'),
+      sites_gosta:        val('sitesGosta'),
+      sites_nao_gosta:    val('sitesNaoGosta'),
+
+      // Etapa 4 — Conteúdo
+      servicos:           val('servicos'),
+      sobre:              val('sobre'),
+      depoimentos:        val('depoimentos'),
+      faq:                val('faq'),
+      nota_google:        val('notaGoogle'),
+      num_avaliacoes:     val('numAvaliacoes'),
+      secoes_desejadas:   secoesSelecionadas,
+
+      // Etapa 5 — Público
+      publico_alvo:   val('publicoAlvo'),
+      dor_cliente:    val('dorCliente'),
+      diferenciais:   val('diferenciais'),
+      concorrentes:   val('concorrentes'),
+      tom_comunicacao: tomSelecionado,
+      prazo:          val('prazo'),
+      observacoes:    val('observacoes'),
+
+      // Etapa 6 — Arquivos (URLs preenchidas após upload)
+      site_atual:     val('siteAtual'),
+      dominio:        val('dominio'),
+      dominio_nome:   val('dominioNome'),
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // SUBMIT PRINCIPAL
+  // ─────────────────────────────────────────────
+  async function submitForm() {
+    const btn = document.querySelector('.btn-submit');
+    const originalText = btn.textContent;
+
+    // Estado: loading
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    btn.style.opacity = '0.7';
+    btn.style.cursor = 'not-allowed';
+
+    try {
+      // ── Fase 1: Upload de arquivos ──────────────
+      const logoInput  = document.querySelector('#uploadLogo input[type="file"]');
+      const fotosInput = document.querySelector('#uploadFotos input[type="file"]');
+      const manualInput = document.querySelector('#uploadFotos')?.parentElement
+        ?.parentElement?.querySelector('.upload-area:nth-of-type(3) input[type="file"]')
+        ?? document.querySelectorAll('.upload-area input[type="file"]')[2];
+
+      const [logoUrls, fotosUrls, manualUrls] = await Promise.all([
+        uploadFiles(logoInput,   'logos'),
+        uploadFiles(fotosInput,  'fotos'),
+        uploadFiles(manualInput, 'manuais'),
+      ]);
+
+      // ── Fase 2: Montagem do payload ─────────────
+      const payload = {
+        ...collectFormData(),
+        url_logo:   logoUrls,
+        url_fotos:  fotosUrls,
+        url_manual: manualUrls,
+        enviado_em: new Date().toISOString(),
+      };
+
+      // ── Fase 3: Insert na tabela briefings ──────
+      const { error } = await supabaseClient
+        .from('briefings')
+        .insert([payload]);
+
+      if (error) throw error;
+
+      // ── Sucesso ──────────────────────────────────
+      document.querySelector('.form-container').style.display = 'none';
+      document.querySelector('header').style.display = 'none';
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('successScreen').classList.add('visible');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      // ── Erro: restaura botão e alerta o usuário ──
+      console.error('Erro ao enviar briefing:', err);
+      alert('Ocorreu um erro ao enviar o briefing. Por favor, tente novamente.\n\nDetalhes: ' + (err.message || err));
+
+      btn.disabled = false;
+      btn.textContent = originalText;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+    }
+  }
+
+  // Inicia a barra de progresso na etapa 1
+  updateProgress();
+</script>
+</body>
+</html>
